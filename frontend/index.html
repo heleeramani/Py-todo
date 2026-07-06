@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drift — Todos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e17;
+    --panel:#11151f;
+    --panel-2:#161c29;
+    --border:rgba(255,255,255,0.08);
+    --border-glow:rgba(124,92,255,0.45);
+    --text:#f5f3ff;
+    --muted:#8b8fa3;
+    --primary:#7c5cff;
+    --primary-2:#9d85ff;
+    --done:#34d8c0;
+    --danger:#ff6b81;
+    --radius:16px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:64px 20px;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  .orb{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(60px);
+    pointer-events:none;
+    z-index:0;
+    opacity:0.55;
+  }
+  .orb-1{
+    width:420px; height:420px;
+    background:radial-gradient(circle, rgba(124,92,255,0.55), transparent 70%);
+    top:-120px; left:-100px;
+    animation:driftA 16s ease-in-out infinite;
+  }
+  .orb-2{
+    width:380px; height:380px;
+    background:radial-gradient(circle, rgba(52,216,192,0.4), transparent 70%);
+    bottom:-140px; right:-120px;
+    animation:driftB 19s ease-in-out infinite;
+  }
+  .orb-3{
+    width:260px; height:260px;
+    background:radial-gradient(circle, rgba(157,133,255,0.35), transparent 70%);
+    top:40%; right:10%;
+    animation:driftC 13s ease-in-out infinite;
+  }
+  @keyframes driftA{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    50%{ transform:translate(60px,40px) scale(1.15); }
+  }
+  @keyframes driftB{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    50%{ transform:translate(-50px,-30px) scale(1.1); }
+  }
+  @keyframes driftC{
+    0%,100%{ transform:translate(0,0); }
+    50%{ transform:translate(-40px,50px); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .orb{ animation:none !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+
+  .app{
+    width:100%;
+    max-width:560px;
+    position:relative;
+    z-index:1;
+  }
+
+  .eyebrow{
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--primary-2);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+    opacity:0;
+    animation:fadeUp 0.6s ease forwards;
+  }
+  .eyebrow .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--primary);
+    box-shadow:0 0 8px 2px var(--primary);
+  }
+
+  h1{
+    font-family:'Outfit', sans-serif;
+    font-weight:700;
+    font-size:42px;
+    line-height:1.05;
+    margin:0 0 6px 0;
+    letter-spacing:-0.02em;
+    opacity:0;
+    animation:fadeUp 0.6s ease 0.08s forwards;
+  }
+  h1 span{
+    color:var(--primary-2);
+    font-weight:800;
+  }
+
+  .subtitle{
+    color:var(--muted);
+    font-size:15px;
+    margin-bottom:32px;
+    opacity:0;
+    animation:fadeUp 0.6s ease 0.16s forwards;
+  }
+
+  .stats{
+    display:flex;
+    gap:10px;
+    margin-bottom:24px;
+    opacity:0;
+    animation:fadeUp 0.6s ease 0.22s forwards;
+  }
+  .stat{
+    flex:1;
+    background:linear-gradient(160deg, var(--panel), var(--panel-2));
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px 16px;
+  }
+  .stat .num{
+    font-family:'Outfit', sans-serif;
+    font-size:24px;
+    font-weight:700;
+  }
+  .stat .label{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .stat.active .num{ color:var(--primary-2); }
+  .stat.done .num{ color:var(--done); }
+
+  .composer{
+    position:relative;
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+    opacity:0;
+    animation:fadeUp 0.6s ease 0.28s forwards;
+  }
+  .composer.hidden{ display:none; }
+  .composer input, .composer textarea{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:15px 18px;
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    font-size:15px;
+    outline:none;
+    transition:border-color 0.25s, box-shadow 0.25s;
+    resize:none;
+  }
+  .composer input::placeholder, .composer textarea::placeholder{ color:var(--muted); }
+  .composer input:focus, .composer textarea:focus{
+    border-color:var(--border-glow);
+    box-shadow:0 0 0 4px rgba(124,92,255,0.12), 0 0 24px rgba(124,92,255,0.18);
+  }
+  .composer button{
+    background:linear-gradient(135deg, var(--primary), #5d3fe0);
+    border:none;
+    border-radius:12px;
+    color:white;
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    padding:0 22px;
+    cursor:pointer;
+    transition:transform 0.15s, box-shadow 0.25s;
+    box-shadow:0 4px 18px rgba(124,92,255,0.35);
+    flex-shrink:0;
+  }
+  .composer button:hover{ transform:translateY(-1px); box-shadow:0 6px 22px rgba(124,92,255,0.5); }
+  .composer button:active{ transform:translateY(0); }
+  .composer button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .composer.ai button{
+    background:linear-gradient(135deg, #9d85ff, var(--done));
+  }
+
+  .mode-toggle{
+    display:flex;
+    gap:4px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:4px;
+    margin-bottom:16px;
+    width:fit-content;
+    opacity:0;
+    animation:fadeUp 0.6s ease 0.24s forwards;
+  }
+  .mode-btn{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:9px;
+    cursor:pointer;
+    transition:all 0.25s;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .mode-btn.active{
+    background:linear-gradient(135deg, rgba(124,92,255,0.22), rgba(157,133,255,0.12));
+    color:var(--primary-2);
+    box-shadow:0 0 0 1px var(--border-glow);
+  }
+  .mode-btn.active.ai-mode{
+    background:linear-gradient(135deg, rgba(157,133,255,0.22), rgba(52,216,192,0.12));
+    color:var(--done);
+    box-shadow:0 0 0 1px rgba(52,216,192,0.4);
+  }
+  .mode-btn .spark{
+    width:8px; height:8px;
+  }
+
+  .ai-hint{
+    font-size:12px;
+    color:var(--muted);
+    margin:-8px 0 16px 2px;
+    opacity:0;
+    animation:fadeUp 0.5s ease 0.3s forwards;
+  }
+
+  .filters{
+    display:flex;
+    gap:6px;
+    margin-bottom:18px;
+    opacity:0;
+    animation:fadeUp 0.6s ease 0.34s forwards;
+  }
+  .filter-btn{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--muted);
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:7px 14px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:all 0.2s;
+  }
+  .filter-btn:hover{ color:var(--text); border-color:rgba(255,255,255,0.18); }
+  .filter-btn.active{
+    background:rgba(124,92,255,0.15);
+    border-color:var(--border-glow);
+    color:var(--primary-2);
+  }
+
+  .list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    transition:opacity 0.15s ease;
+  }
+
+  .item{
+    background:linear-gradient(160deg, var(--panel), var(--panel-2));
+    border:1px solid var(--border);
+    border-left:3px solid transparent;
+    border-radius:var(--radius);
+    padding:16px 16px 16px 14px;
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    position:relative;
+    overflow:hidden;
+    animation:itemIn 0.5s cubic-bezier(0.16,1,0.3,1) backwards;
+    transition:border-color 0.3s, box-shadow 0.4s, transform 0.15s ease-out;
+    transform-style:preserve-3d;
+    will-change:transform;
+  }
+  .item.priority-high{ border-left-color:var(--danger); }
+  .item.priority-medium{ border-left-color:#f5b942; }
+  .item.priority-low{ border-left-color:var(--muted); }
+  .item.done{ border-left-color:var(--done) !important; }
+  .item::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:var(--radius);
+    background:radial-gradient(circle at var(--mx,0%) var(--my,0%), rgba(124,92,255,0.16), transparent 55%);
+    opacity:0;
+    transition:opacity 0.3s;
+    pointer-events:none;
+  }
+  .item:hover::before{ opacity:1; }
+  .item:hover{
+    border-color:rgba(124,92,255,0.3);
+    box-shadow:0 12px 30px -10px rgba(124,92,255,0.25);
+  }
+  .item.just-completed{
+    animation:completePulse 0.55s ease;
+  }
+  @keyframes completePulse{
+    0%{ box-shadow:0 0 0 0 rgba(52,216,192,0.4); }
+    40%{ box-shadow:0 0 0 14px rgba(52,216,192,0.12); }
+    100%{ box-shadow:0 0 0 0 rgba(52,216,192,0); }
+  }
+
+  .item.removing{
+    animation:itemOut 0.35s ease forwards;
+  }
+
+  .checkbox{
+    flex-shrink:0;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.22);
+    cursor:pointer;
+    position:relative;
+    margin-top:1px;
+    background:transparent;
+    transition:border-color 0.3s;
+  }
+  .checkbox svg{
+    position:absolute;
+    inset:0;
+    margin:auto;
+    width:14px;
+    height:14px;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .checkbox.checked{
+    border-color:var(--done);
+    background:radial-gradient(circle, rgba(52,216,192,0.25), rgba(52,216,192,0.05));
+    box-shadow:0 0 14px rgba(52,216,192,0.5);
+  }
+  .checkbox.checked svg{ transform:translate(-50%,-50%) scale(1); }
+  .checkbox:hover{ border-color:var(--done); }
+
+  .item-body{ flex:1; min-width:0; }
+  .item-title{
+    font-size:15.5px;
+    font-weight:500;
+    word-break:break-word;
+    transition:color 0.3s;
+  }
+  .item-desc{
+    font-size:13px;
+    color:var(--muted);
+    margin-top:4px;
+    word-break:break-word;
+  }
+  .item-meta{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
+  .meta-pill{
+    font-size:11.5px;
+    font-weight:600;
+    padding:3px 9px;
+    border-radius:20px;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  .meta-pill.due{
+    background:rgba(124,92,255,0.14);
+    color:var(--primary-2);
+  }
+  .meta-pill.due.overdue{
+    background:rgba(255,107,129,0.14);
+    color:var(--danger);
+  }
+  .meta-pill.prio-high{ background:rgba(255,107,129,0.14); color:var(--danger); }
+  .meta-pill.prio-medium{ background:rgba(245,185,66,0.14); color:#f5b942; }
+  .meta-pill.prio-low{ background:rgba(139,143,163,0.14); color:var(--muted); }
+  .meta-pill.ai-tag{
+    background:linear-gradient(135deg, rgba(157,133,255,0.18), rgba(52,216,192,0.14));
+    color:var(--primary-2);
+  }
+  .item.done .item-title{
+    color:var(--muted);
+    text-decoration:line-through;
+    text-decoration-color:rgba(139,143,163,0.5);
+  }
+
+  .delete-btn{
+    flex-shrink:0;
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    width:30px;
+    height:30px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    transition:opacity 0.2s, background 0.2s, color 0.2s;
+  }
+  .item:hover .delete-btn{ opacity:1; }
+  .delete-btn:hover{ background:rgba(255,107,129,0.12); color:var(--danger); }
+
+  .empty{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--muted);
+    animation:fadeUp 0.5s ease forwards;
+  }
+  .empty .glyph{
+    font-size:34px;
+    margin-bottom:10px;
+    opacity:0.6;
+  }
+  .empty .msg{ font-size:14px; }
+
+  .toast{
+    position:fixed;
+    bottom:28px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2);
+    border:1px solid var(--border-glow);
+    color:var(--text);
+    padding:12px 20px;
+    border-radius:12px;
+    font-size:14px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.4);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.3s, transform 0.3s;
+    z-index:50;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+  .toast.error{ border-color:rgba(255,107,129,0.5); }
+
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(10px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  @keyframes itemIn{
+    from{ opacity:0; transform:translateY(8px) scale(0.98); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  @keyframes itemPopIn{
+    0%{ opacity:0; transform:translateY(-6px) scale(0.92); }
+    55%{ opacity:1; transform:translateY(2px) scale(1.025); }
+    100%{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  @keyframes itemOut{
+    to{ opacity:0; transform:scale(0.9) translateX(16px) rotate(2deg); }
+  }
+
+  .spinner{
+    width:16px;height:16px;
+    border:2px solid rgba(255,255,255,0.25);
+    border-top-color:white;
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+    display:inline-block;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .config-bar{
+    margin-top:34px;
+    padding-top:16px;
+    border-top:1px solid var(--border);
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .config-bar input{
+    background:transparent;
+    border:1px solid var(--border);
+    border-radius:6px;
+    color:var(--muted);
+    font-size:12px;
+    padding:4px 8px;
+    width:200px;
+  }
+
+  .credit{
+    margin-top:18px;
+    text-align:center;
+    font-size:12px;
+    color:var(--muted);
+    opacity:0;
+    animation:fadeUp 0.6s ease 0.4s forwards;
+  }
+  .credit span{
+    color:var(--primary-2);
+    font-weight:600;
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="app">
+  <div class="eyebrow"><span class="dot"></span>FastAPI · PostgreSQL</div>
+  <h1>Your day, <span>drifting</span> into done.</h1>
+  <div class="subtitle">Add a task, watch it settle in, check it off when it's real.</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="num" id="statTotal">0</div>
+      <div class="label">Total</div>
+    </div>
+    <div class="stat active">
+      <div class="num" id="statActive">0</div>
+      <div class="label">Active</div>
+    </div>
+    <div class="stat done">
+      <div class="num" id="statDone">0</div>
+      <div class="label">Completed</div>
+    </div>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="quickModeBtn" type="button">Quick add</button>
+    <button class="mode-btn ai-mode" id="aiModeBtn" type="button">✨ AI add</button>
+  </div>
+
+  <form class="composer" id="composerForm">
+    <input id="titleInput" type="text" placeholder="What needs doing?" autocomplete="off" />
+    <button type="submit" id="addBtn">Add</button>
+  </form>
+
+  <form class="composer ai hidden" id="aiComposerForm">
+    <input id="aiInput" type="text" placeholder='Try "call dentist next Monday morning, urgent"' autocomplete="off" />
+    <button type="submit" id="aiAddBtn">✨ Parse</button>
+  </form>
+  <div class="ai-hint hidden" id="aiHint">Gemini will pull out a title, due date, and priority automatically.</div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="active">Active</button>
+    <button class="filter-btn" data-filter="done">Completed</button>
+  </div>
+
+  <ul class="list" id="list"></ul>
+  <div class="empty" id="emptyState" style="display:none;">
+    <div class="glyph">◌</div>
+    <div class="msg">Nothing here yet. Add your first task above.</div>
+  </div>
+
+  <div class="config-bar">
+    API base:
+    <input id="apiBase" value="https://drift-apis.onrender.com" />
+  </div>
+  <!-- <div class="credit">Made by <span>Helee Ramani</span></div> -->
+</div>
+
+<div class="toast" id="toast"></div>
+<canvas id="burstCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:60;"></canvas>
+
+<script>
+  let API_BASE = document.getElementById('apiBase').value;
+  let todos = [];
+  let currentFilter = 'all';
+
+  const list = document.getElementById('list');
+  const emptyState = document.getElementById('emptyState');
+  const form = document.getElementById('composerForm');
+  const input = document.getElementById('titleInput');
+  const addBtn = document.getElementById('addBtn');
+  const toast = document.getElementById('toast');
+  const apiBaseInput = document.getElementById('apiBase');
+
+  const quickModeBtn = document.getElementById('quickModeBtn');
+  const aiModeBtn = document.getElementById('aiModeBtn');
+  const aiComposerForm = document.getElementById('aiComposerForm');
+  const aiInput = document.getElementById('aiInput');
+  const aiAddBtn = document.getElementById('aiAddBtn');
+  const aiHint = document.getElementById('aiHint');
+
+  apiBaseInput.addEventListener('change', () => {
+    API_BASE = apiBaseInput.value.replace(/\/$/, '');
+    fetchTodos();
+  });
+
+  function showToast(msg, isError=false){
+    toast.textContent = msg;
+    toast.classList.toggle('error', isError);
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 2400);
+  }
+
+  function checkIcon(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="#0a0e17" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  }
+
+  // ---- particle burst on completion ----
+  const burstCanvas = document.getElementById('burstCanvas');
+  const ctx = burstCanvas.getContext('2d');
+  function resizeCanvas(){
+    burstCanvas.width = window.innerWidth;
+    burstCanvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  function burst(x, y){
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const colors = ['#34d8c0', '#7c5cff', '#9d85ff', '#5eead4'];
+    const particles = Array.from({length:16}, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 3.5;
+      return {
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        size: 2 + Math.random() * 3,
+        color: colors[Math.floor(Math.random()*colors.length)]
+      };
+    });
+    let frame;
+    function tick(){
+      ctx.clearRect(0,0,burstCanvas.width,burstCanvas.height);
+      let alive = false;
+      particles.forEach(p => {
+        if(p.life <= 0) return;
+        alive = true;
+        p.x += p.vx; p.y += p.vy;
+        p.vy += 0.06;
+        p.life -= 0.028;
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      if(alive) frame = requestAnimationFrame(tick);
+      else ctx.clearRect(0,0,burstCanvas.width,burstCanvas.height);
+    }
+    tick();
+  }
+
+  // ---- magnetic tilt on cards ----
+  function attachTilt(el){
+    el.addEventListener('mousemove', (e) => {
+      const r = el.getBoundingClientRect();
+      const px = ((e.clientX - r.left) / r.width) * 100;
+      const py = ((e.clientY - r.top) / r.height) * 100;
+      el.style.setProperty('--mx', px + '%');
+      el.style.setProperty('--my', py + '%');
+      const rx = ((py - 50) / 50) * -3;
+      const ry = ((px - 50) / 50) * 3;
+      el.style.transform = `perspective(600px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-2px)`;
+    });
+    el.addEventListener('mouseleave', () => {
+      el.style.transform = 'perspective(600px) rotateX(0) rotateY(0) translateY(0)';
+    });
+  }
+
+  // ---- animated counters ----
+  const counterState = { total:0, active:0, done:0 };
+  function animateCounter(elId, from, to){
+    if(from === to) return;
+    const el = document.getElementById(elId);
+    const duration = 350;
+    const start = performance.now();
+    function step(now){
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(from + (to - from) * eased);
+      if(t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function render(){
+    const filtered = todos.filter(t => {
+      if(currentFilter === 'active') return !t.is_completed;
+      if(currentFilter === 'done') return t.is_completed;
+      return true;
+    });
+
+    list.innerHTML = '';
+    emptyState.style.display = filtered.length === 0 ? 'block' : 'none';
+
+    filtered.forEach((t, i) => {
+      const li = document.createElement('li');
+      const prioClass = t.priority ? `priority-${t.priority}` : '';
+      li.className = `item ${prioClass}` + (t.is_completed ? ' done' : '');
+      li.style.animationDelay = (i * 0.04) + 's';
+      li.dataset.id = t.id;
+
+      let metaHtml = '';
+      if(t.due_date || t.priority || t.is_ai_generated){
+        const pills = [];
+        if(t.is_ai_generated){
+          pills.push(`<span class="meta-pill ai-tag">✨ AI parsed</span>`);
+        }
+        if(t.due_date){
+          const d = new Date(t.due_date);
+          const overdue = d < new Date() && !t.is_completed;
+          pills.push(`<span class="meta-pill due ${overdue ? 'overdue' : ''}">📅 ${formatDate(d)}</span>`);
+        }
+        if(t.priority){
+          pills.push(`<span class="meta-pill prio-${t.priority}">${t.priority}</span>`);
+        }
+        metaHtml = `<div class="item-meta">${pills.join('')}</div>`;
+      }
+
+      li.innerHTML = `
+        <button class="checkbox ${t.is_completed ? 'checked' : ''}" aria-label="Toggle complete">${checkIcon()}</button>
+        <div class="item-body">
+          <div class="item-title">${escapeHtml(t.title)}</div>
+          ${t.description ? `<div class="item-desc">${escapeHtml(t.description)}</div>` : ''}
+          ${metaHtml}
+        </div>
+        <button class="delete-btn" aria-label="Delete">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      `;
+
+      li.querySelector('.checkbox').addEventListener('click', (e) => toggleTodo(t, e));
+      li.querySelector('.delete-btn').addEventListener('click', () => removeTodo(t.id, li));
+      attachTilt(li);
+
+      list.appendChild(li);
+    });
+
+    animateCounter('statTotal', counterState.total, todos.length);
+    animateCounter('statActive', counterState.active, todos.filter(t=>!t.is_completed).length);
+    animateCounter('statDone', counterState.done, todos.filter(t=>t.is_completed).length);
+    counterState.total = todos.length;
+    counterState.active = todos.filter(t=>!t.is_completed).length;
+    counterState.done = todos.filter(t=>t.is_completed).length;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatDate(d){
+    const opts = { month:'short', day:'numeric' };
+    const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+    return d.toLocaleDateString(undefined, opts) + (hasTime ? `, ${d.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'})}` : '');
+  }
+
+  async function fetchTodos(){
+    try{
+      const res = await fetch(`${API_BASE}/todos/`);
+      if(!res.ok) throw new Error('Failed to load');
+      todos = await res.json();
+      render();
+    }catch(err){
+      showToast('Could not reach API — check it is running & CORS is enabled', true);
+    }
+  }
+
+  async function addTodo(title){
+    addBtn.innerHTML = '<span class="spinner"></span>';
+    addBtn.disabled = true;
+    try{
+      const res = await fetch(`${API_BASE}/todos/`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ title })
+      });
+      if(!res.ok) throw new Error('Failed to add');
+      const newTodo = await res.json();
+      todos.unshift(newTodo);
+      render();
+      const firstItem = list.querySelector('.item');
+      if(firstItem) firstItem.style.animationName = 'itemPopIn';
+      addBtn.innerHTML = '✓';
+      showToast('Task added');
+    }catch(err){
+      showToast('Could not add task', true);
+    }finally{
+      setTimeout(() => {
+        addBtn.textContent = 'Add';
+        addBtn.disabled = false;
+      }, 350);
+    }
+  }
+
+  async function toggleTodo(todo, evt){
+    const optimistic = !todo.is_completed;
+    todo.is_completed = optimistic;
+
+    if(optimistic && evt){
+      const r = evt.target.closest('.checkbox').getBoundingClientRect();
+      burst(r.left + r.width/2, r.top + r.height/2);
+      const card = evt.target.closest('.item');
+      if(card){
+        card.classList.add('just-completed');
+        setTimeout(() => card.classList.remove('just-completed'), 600);
+      }
+    }
+
+    render();
+    try{
+      const res = await fetch(`${API_BASE}/todos/${todo.id}`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ is_completed: optimistic })
+      });
+      if(!res.ok) throw new Error();
+    }catch(err){
+      todo.is_completed = !optimistic;
+      render();
+      showToast('Could not update task', true);
+    }
+  }
+
+  async function removeTodo(id, li){
+    li.classList.add('removing');
+    try{
+      const res = await fetch(`${API_BASE}/todos/${id}`, { method:'DELETE' });
+      if(!res.ok) throw new Error();
+      setTimeout(() => {
+        todos = todos.filter(t => t.id !== id);
+        render();
+      }, 320);
+    }catch(err){
+      li.classList.remove('removing');
+      showToast('Could not delete task', true);
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = input.value.trim();
+    if(!title) return;
+    input.value = '';
+    addTodo(title);
+  });
+
+  quickModeBtn.addEventListener('click', () => {
+    quickModeBtn.classList.add('active');
+    aiModeBtn.classList.remove('active');
+    form.classList.remove('hidden');
+    aiComposerForm.classList.add('hidden');
+    aiHint.classList.add('hidden');
+    input.focus();
+  });
+
+  aiModeBtn.addEventListener('click', () => {
+    aiModeBtn.classList.add('active');
+    quickModeBtn.classList.remove('active');
+    aiComposerForm.classList.remove('hidden');
+    form.classList.add('hidden');
+    aiHint.classList.remove('hidden');
+    aiInput.focus();
+  });
+
+  aiComposerForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = aiInput.value.trim();
+    if(!text) return;
+    aiInput.value = '';
+    addTodoFromText(text);
+  });
+
+  async function addTodoFromText(text){
+    aiAddBtn.innerHTML = '<span class="spinner"></span>';
+    aiAddBtn.disabled = true;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    try{
+      const res = await fetch(`${API_BASE}/todos/smart`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ text, timezone })
+      });
+      if(!res.ok){
+        if(res.status === 502){
+          showToast('AI service is unavailable right now', true);
+        } else {
+          throw new Error('Failed to add');
+        }
+        return;
+      }
+      const newTodo = await res.json();
+      todos.unshift(newTodo);
+      render();
+      const firstItem = list.querySelector('.item');
+      if(firstItem) firstItem.style.animationName = 'itemPopIn';
+      showToast('Task parsed and added ✨');
+    }catch(err){
+      showToast('Could not add task', true);
+    }finally{
+      aiAddBtn.innerHTML = '✨ Parse';
+      aiAddBtn.disabled = false;
+    }
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      list.style.opacity = '0';
+      setTimeout(() => {
+        render();
+        list.style.opacity = '1';
+      }, 120);
+    });
+  });
+
+  fetchTodos();
+</script>
+</body>
+</html>
