@@ -8,7 +8,7 @@ app.include_router(todo_routes.router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://to-do-xho1.onrender.com"],
+    allow_origins=["https://py-todo-1.onrender.com"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
